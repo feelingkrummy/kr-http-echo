@@ -72,6 +72,8 @@ int open_tcp_conn(const char* ipv4, const char* port) {
 		return -1;
 	}
 
+	freeaddrinfo(servinfo);
+	servinfo = NULL;
 	return sock;
 }
 
