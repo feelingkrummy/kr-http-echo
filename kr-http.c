@@ -35,7 +35,7 @@ int open_tcp_conn(const char* ipv4, const char* port) {
 		return -1;
 	}
 	fprintf(stderr, "Got addrinfo\n");
-	
+
 	// Start Connection
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1) {
@@ -44,6 +44,17 @@ int open_tcp_conn(const char* ipv4, const char* port) {
 		return -1;
 	}
 	fprintf(stderr, "Openned socket!\n");
+
+	// I set reuseaddr so that I can interate more quickly. Even if the code
+	// closes the socket correctly after getting SIGINT, I can't immediately
+	// start the server up again because "The addr is still in use"
+	int enable = 1;
+	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable) == -1) {
+		int e = errno;
+		fprintf(stderr, "Cannot set options : (%d) %s\n", errno, strerror(errno));
+		freeaddrinfo(servinfo);
+		return -1;
+	}
 
 	result = bind(sock, servinfo->ai_addr, servinfo->ai_addrlen);
 	if (result == -1) {
