@@ -10,6 +10,8 @@
 #include <netdb.h>
 #include <signal.h>
 
+#include "tcp.h"
+
 #define KR_LOCALHOST "127.0.0.1"
 #define KR_PORT "18080"
 #define KR_BACKLOG 10
@@ -18,70 +20,6 @@ static volatile sig_atomic_t running = 1;
 
 static void sigint_handler(int n) {
 	running = 0;
-}
-
-int open_tcp_conn(const char* ipv4, const char* port) {
-	struct addrinfo hints = {0};
-	struct addrinfo *servinfo = NULL;
-	int result = 0;
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-
-	int status = getaddrinfo(ipv4, port, &hints, &servinfo);
-	if (status != 0) {
-		fprintf(stderr, "getaddrinfo error : (%d) %s\n", status, gai_strerror(status));
-		return -1;
-	}
-	fprintf(stderr, "Got addrinfo\n");
-
-	// Start Connection
-	int sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (sock == -1) {
-		fprintf(stderr, "Cannot open socket : (%d) %s\n", errno, strerror(errno));
-		freeaddrinfo(servinfo);
-		return -1;
-	}
-	fprintf(stderr, "Openned socket!\n");
-
-	// I set reuseaddr so that I can interate more quickly. Even if the code
-	// closes the socket correctly after getting SIGINT, I can't immediately
-	// start the server up again because "The addr is still in use"
-	int enable = 1;
-	if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable) == -1) {
-		int e = errno;
-		fprintf(stderr, "Cannot set options : (%d) %s\n", errno, strerror(errno));
-		freeaddrinfo(servinfo);
-		return -1;
-	}
-
-	result = bind(sock, servinfo->ai_addr, servinfo->ai_addrlen);
-	if (result == -1) {
-		fprintf(stderr, "Cannot bind socket : (%d) : %s\n", errno, strerror(errno));
-		freeaddrinfo(servinfo);
-		close(sock);
-		return -1;
-	}
-
-	result = listen(sock, KR_BACKLOG);
-	if (result == -1) {
-		fprintf(stderr, "Cannot listend to socket : (%d) : %s\n", errno, strerror(errno));
-		freeaddrinfo(servinfo);
-		close(sock);
-		return -1;
-	}
-
-	freeaddrinfo(servinfo);
-	servinfo = NULL;
-	return sock;
-}
-
-void close_tcp_conn(int sockfd) {
-	if (close(sockfd) == -1) {
-		int e = errno;
-		fprintf(stderr, "Could not close socket, (%d) %s\n", e, strerror(e));
-	}
 }
 
 #define RD_BUF_LEN 4096
@@ -110,23 +48,22 @@ int main(int argc, char* argv[]) {
 	sigint_sa.sa_handler = sigint_handler;
 	sigaction(SIGINT, &sigint_sa, NULL);
 
-	int sockfd = open_tcp_conn(KR_LOCALHOST, KR_PORT);
-	if (sockfd == -1) {
+	struct tcp_sock conn = open_tcp(KR_LOCALHOST, KR_PORT, KR_BACKLOG);
+	if (conn.sock == -1) {
 		fprintf(stderr, "Could not open socket, exitting ... \n");
 		exit(1);
 	}
 
-	// This is wrong
 	while (running) {
 		struct sockaddr_storage their_addr;
 		socklen_t addr_size = sizeof their_addr;
-		int accept_fd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+		int accept_fd = accept(conn.sock, (struct sockaddr *)&their_addr, &addr_size);
 
 		if (accept_fd == -1) {
 			int e = errno;
-			if (e != EINTR) {
+			if (e != EINTR || running == 1) {
 				fprintf(stderr, "Cannot accept : (%d) : %s\n", errno, strerror(errno));
-				close_tcp_conn(sockfd);
+				close_tcp(&conn);
 				exit(1);
 			}
 			continue;
@@ -187,7 +124,7 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stderr, "Exiting ... \n");
 
-	close_tcp_conn(sockfd);
+	close_tcp(&conn);
 
 	return 0;
 }

@@ -1,2 +1,2 @@
 #!/bin/sh
-gcc ./kr-http.c -o kr-http
+gcc ./kr-http.c ./tcp.c -o kr-http
