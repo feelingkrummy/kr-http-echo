@@ -10,7 +10,9 @@
 #include <netdb.h>
 #include <signal.h>
 
+#include "string8.h"
 #include "tcp.h"
+#include "http.h"
 
 #define KR_LOCALHOST "127.0.0.1"
 #define KR_PORT "18080"
@@ -54,6 +56,26 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	char resp_msg[] =
+		"HTTP/1.1 200 OK\r\n"
+		"Connection : close\r\n"
+		"Content-Type : text/html; charset=UTF-8\r\n"
+		"Content-Length : 88\r\n"
+		"\r\n"
+		"<html><head><title>Hello, world!</title></head><body><h1>Hello, world!</h1><body></html>"
+	;
+	int resp_msg_len = sizeof resp_msg;
+
+	struct string8 resp = {
+		.len = resp_msg_len-1,
+		.cap = resp_msg_len,
+		.ptr = resp_msg
+	};
+
+	int check = check_if_complete_request(resp);
+	fprintf(stderr, "Check : %d\n", check);
+
+	/*
 	while (running) {
 		struct sockaddr_storage their_addr;
 		socklen_t addr_size = sizeof their_addr;
@@ -79,12 +101,21 @@ int main(int argc, char* argv[]) {
 		;
 		int resp_msg_len = sizeof resp_msg;
 
+		struct string8 resp = {
+			.len = resp_msg_len-1,
+			.cap = resp_msg_len,
+			.ptr = resp_msg
+		};
+
+		int check = check_if_complete_request(resp);
+
 		char not_found_msg[] =
 			"HTTP/1.1 404 Not Found\r\n"
 			"Connection : close \r\n"
 			"\r\n"
 		;
 		int not_found_msg_len = sizeof not_found_msg;
+
 
 		int rd_bytes = recv(accept_fd, rd_buf, RD_BUF_LEN-1, 0);
 
@@ -121,6 +152,7 @@ int main(int argc, char* argv[]) {
 
 		close(accept_fd);
 	}
+	*/
 
 	fprintf(stderr, "Exiting ... \n");
 

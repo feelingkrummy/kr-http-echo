@@ -5,6 +5,9 @@
 
 #define HTTP_BUF_SIZE 4096
 
-struct string8 read_http_request(int fd);
+extern const struct string8 not_found_msg;
 
-#endif;
+struct string8 read_http_request(int fd);
+int check_if_complete_request(struct string8 request);
+
+#endif
