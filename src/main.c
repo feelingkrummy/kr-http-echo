@@ -56,6 +56,11 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	while (running) {
+
+	}
+
+	/*
 	char resp_msg[] =
 		"HTTP/1.1 200 OK\r\n"
 		"Connection : close\r\n"
@@ -66,16 +71,6 @@ int main(int argc, char* argv[]) {
 	;
 	int resp_msg_len = sizeof resp_msg;
 
-	struct string8 resp = {
-		.len = resp_msg_len-1,
-		.cap = resp_msg_len,
-		.ptr = resp_msg
-	};
-
-	int check = check_if_complete_request(resp);
-	fprintf(stderr, "Check : %d\n", check);
-
-	/*
 	while (running) {
 		struct sockaddr_storage their_addr;
 		socklen_t addr_size = sizeof their_addr;
