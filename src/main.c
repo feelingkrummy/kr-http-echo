@@ -57,20 +57,25 @@ int main(int argc, char* argv[]) {
 	}
 
 	while (running) {
+		struct sockaddr_storage their_addr;
+		socklen_t addr_size = sizeof their_addr;
+		int accept_fd = accept(conn.sock, (struct sockaddr *)&their_addr, &addr_size);
+
+		if (accept_fd == -1) {
+			int e = errno;
+			if (e != EINTR || running == 1) {
+				fprintf(stderr, "Cannot accept : (%d) : %s\n", errno, strerror(errno));
+				close_tcp(&conn);
+				exit(1);
+			}
+			continue;
+		}
+
+
 
 	}
 
 	/*
-	char resp_msg[] =
-		"HTTP/1.1 200 OK\r\n"
-		"Connection : close\r\n"
-		"Content-Type : text/html; charset=UTF-8\r\n"
-		"Content-Length : 88\r\n"
-		"\r\n"
-		"<html><head><title>Hello, world!</title></head><body><h1>Hello, world!</h1><body></html>"
-	;
-	int resp_msg_len = sizeof resp_msg;
-
 	while (running) {
 		struct sockaddr_storage their_addr;
 		socklen_t addr_size = sizeof their_addr;
@@ -96,21 +101,12 @@ int main(int argc, char* argv[]) {
 		;
 		int resp_msg_len = sizeof resp_msg;
 
-		struct string8 resp = {
-			.len = resp_msg_len-1,
-			.cap = resp_msg_len,
-			.ptr = resp_msg
-		};
-
-		int check = check_if_complete_request(resp);
-
 		char not_found_msg[] =
 			"HTTP/1.1 404 Not Found\r\n"
 			"Connection : close \r\n"
 			"\r\n"
 		;
 		int not_found_msg_len = sizeof not_found_msg;
-
 
 		int rd_bytes = recv(accept_fd, rd_buf, RD_BUF_LEN-1, 0);
 
