@@ -11,4 +11,6 @@ struct string8 {
 	char* ptr;
 };
 
+void destroy_string8(struct string8 *s);
+
 #endif

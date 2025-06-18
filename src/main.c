@@ -71,8 +71,30 @@ int main(int argc, char* argv[]) {
 			continue;
 		}
 
+		struct string8 request = read_http_request(accept_fd);
 
+		if (request.ptr == NULL) {
+			running = 0;
+			destroy_string8(&request);
+			close(accept_fd);
+			continue;
+		}
 
+		fprintf(stderr, "Received request : [\n%.*s]\n", request.len, request.ptr);
+
+		// Default to Not found for testing
+		int wr_bytes = send(accept_fd, not_found_msg.ptr, not_found_msg.len, 0);
+		fprintf(stderr, "wr_bytes : %d\n", wr_bytes);
+		if (wr_bytes == -1) {
+			fprintf(stderr, "Cannot send : (%d) : %s\n", errno, strerror(errno));
+			running = 0;
+			destroy_string8(&request);
+			close(accept_fd);
+			continue;
+		}
+
+		destroy_string8(&request);
+		close(accept_fd);
 	}
 
 	/*
