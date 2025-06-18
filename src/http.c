@@ -68,7 +68,6 @@ struct string8 read_http_request(int fd) {
 		char* dest = req.ptr+req.len; // Calculate current copy location
 		size_t size = req.cap-req.len-1; // Calculate space in string
 		rd_bytes = recv(fd, req.ptr + req.len, req.cap-req.len-1, 0);
-
 		// Handle recv error cases, return empty string
 		// If connection closes dump whatever we're working on
 		if (rd_bytes <= 0) {
@@ -87,12 +86,13 @@ struct string8 read_http_request(int fd) {
 		complete = check_if_complete_request(req);
 		if (!complete) {
 			if (req.len+1 >= req.cap) {
-				char* new = calloc(req.cap*1.5, 1);
+				size_t new_cap = req.cap*1.5;
+				char* new = calloc(new_cap, 1);
 				assert(new);
 				memcpy(new, req.ptr, req.cap);
 				free(req.ptr);
 				req.ptr = new;
-				req.cap *= 1.5;
+				req.cap = new_cap;
 			}
 		} else {
 			break;
@@ -100,4 +100,19 @@ struct string8 read_http_request(int fd) {
 	};
 
 	return req;
+}
+
+int write_http_response(int fd, struct string8 response) {
+	int written = 0;
+	while (written < response.len) {
+		char* wr_ptr = &(response.ptr[written]);
+		uint64_t wr_len = response.len - written;
+		int wr_bytes = send(fd, wr_ptr, wr_len, 0);
+		if (wr_bytes == -1) {
+			int e = errno;
+			fprintf(stderr, "Cannont send : (%d) %s\n", e, strerror(e));
+			return written;
+		}
+		written += wr_bytes;
+	}
 }

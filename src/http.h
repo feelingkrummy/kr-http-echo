@@ -10,4 +10,6 @@ extern const struct string8 not_found_msg;
 struct string8 read_http_request(int fd);
 int check_if_complete_request(struct string8 request);
 
+int write_http_response(int fd, struct string8 response);
+
 #endif
